@@ -67,10 +67,7 @@
         "test": "phpunit"
     },
     "config": {
-        "sort-packages": true,
-        "platform": {
-            "php": "8.2.99"
-        }
+        "sort-packages": true
     },
     "minimum-stability": "stable",
     "prefer-stable": true
