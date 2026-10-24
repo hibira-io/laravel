@@ -30,13 +30,13 @@
         "illuminate/http": "^5.6|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
         "illuminate/notifications": "^5.6|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
         "illuminate/routing": "^5.6|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
-        "illuminate/support": "10.*",
-        "orchestra/testbench": "8.*",
+        "illuminate/support": "^5.6|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
         "pusher/pusher-php-server": "^3.0|^4.0|^5.0|^6.0|^7.0",
         "pusher/pusher-push-notifications": "^1.1|^2.0"
     },
     "require-dev": {
         "mockery/mockery": "^1.0",
+        "orchestra/testbench": "^3.6|^4.0|^5.0|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0",
         "phpunit/phpunit": "^7.5|^8.0|^9.0|^10.0|^11.0|^12.0"
     },
     "autoload": {
