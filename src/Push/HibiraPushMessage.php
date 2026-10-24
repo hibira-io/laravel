@@ -12,25 +12,35 @@ class HibiraPushMessage
 {
     public const PLATFORMS = ['apns', 'fcm', 'web'];
 
-    protected ?string $title = null;
+    /** @var string|null */
+    protected $title;
 
-    protected ?string $body = null;
+    /** @var string|null */
+    protected $body;
 
-    protected ?string $link = null;
+    /** @var string|null */
+    protected $link;
 
-    protected ?string $icon = null;
+    /** @var string|null */
+    protected $icon;
 
-    protected ?string $sound = null;
+    /** @var string|null */
+    protected $sound;
 
-    protected ?int $badge = null;
+    /** @var int|null */
+    protected $badge;
 
-    protected array $data = [];
+    /** @var array */
+    protected $data = [];
 
-    protected array $platforms = self::PLATFORMS;
+    /** @var list<string> */
+    protected $platforms = self::PLATFORMS;
 
-    protected array $interests = [];
+    /** @var list<string> */
+    protected $interests = [];
 
-    protected array $overrides = ['apns' => [], 'fcm' => [], 'web' => []];
+    /** @var array<string, array> */
+    protected $overrides = ['apns' => [], 'fcm' => [], 'web' => []];
 
     public function __construct(?string $title = null, ?string $body = null)
     {
@@ -38,19 +48,20 @@ class HibiraPushMessage
         $this->body = $body;
     }
 
-    public static function create(?string $title = null, ?string $body = null): static
+    /** @return static */
+    public static function create(?string $title = null, ?string $body = null)
     {
         return new static($title, $body);
     }
 
-    public function title(string $title): static
+    public function title(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    public function body(string $body): static
+    public function body(string $body): self
     {
         $this->body = $body;
 
@@ -58,28 +69,28 @@ class HibiraPushMessage
     }
 
     /** The page a browser opens when the notification is clicked (Web Push deep_link). */
-    public function link(string $url): static
+    public function link(string $url): self
     {
         $this->link = $url;
 
         return $this;
     }
 
-    public function icon(string $icon): static
+    public function icon(string $icon): self
     {
         $this->icon = $icon;
 
         return $this;
     }
 
-    public function sound(string $sound = 'default'): static
+    public function sound(string $sound = 'default'): self
     {
         $this->sound = $sound;
 
         return $this;
     }
 
-    public function badge(int $badge): static
+    public function badge(int $badge): self
     {
         $this->badge = $badge;
 
@@ -87,7 +98,7 @@ class HibiraPushMessage
     }
 
     /** Custom data for your app. FCM receives the values as strings. */
-    public function data(array $data): static
+    public function data(array $data): self
     {
         $this->data = array_replace($this->data, $data);
 
@@ -95,7 +106,7 @@ class HibiraPushMessage
     }
 
     /** Send to these platforms only. */
-    public function only(string ...$platforms): static
+    public function only(string ...$platforms): self
     {
         $this->platforms = array_values(array_intersect(self::PLATFORMS, $platforms));
 
@@ -103,24 +114,24 @@ class HibiraPushMessage
     }
 
     /** Send to every device subscribed to these interests, instead of to the notifiable user. */
-    public function interests(string ...$interests): static
+    public function interests(string ...$interests): self
     {
-        $this->interests = array_values(array_unique([...$this->interests, ...$interests]));
+        $this->interests = array_values(array_unique(array_merge($this->interests, $interests)));
 
         return $this;
     }
 
-    public function apns(array $fields): static
+    public function apns(array $fields): self
     {
         return $this->override('apns', $fields);
     }
 
-    public function fcm(array $fields): static
+    public function fcm(array $fields): self
     {
         return $this->override('fcm', $fields);
     }
 
-    public function web(array $fields): static
+    public function web(array $fields): self
     {
         return $this->override('web', $fields);
     }
@@ -142,7 +153,7 @@ class HibiraPushMessage
         return $request;
     }
 
-    protected function override(string $platform, array $fields): static
+    protected function override(string $platform, array $fields): self
     {
         $this->overrides[$platform] = array_replace_recursive($this->overrides[$platform], $fields);
 
@@ -152,10 +163,10 @@ class HibiraPushMessage
     protected function buildApns(): array
     {
         $aps = array_filter([
-            'alert' => array_filter(['title' => $this->title, 'body' => $this->body], fn ($v) => $v !== null),
+            'alert' => array_filter(['title' => $this->title, 'body' => $this->body], [$this, 'notNull']),
             'sound' => $this->sound,
             'badge' => $this->badge,
-        ], fn ($v) => $v !== null && $v !== []);
+        ], function ($v) { return $v !== null && $v !== []; });
 
         $payload = ['aps' => $aps];
         if ($this->data !== []) {
@@ -173,15 +184,17 @@ class HibiraPushMessage
             'body' => $this->body,
             'icon' => $this->icon,
             'sound' => $this->sound,
-        ], fn ($v) => $v !== null);
+        ], [$this, 'notNull']);
 
         if ($notification !== []) {
             $payload['notification'] = $notification;
         }
         if ($this->data !== []) {
             $payload['data'] = array_map(
-                fn ($v) => is_scalar($v) || $v === null ? (string) $v : json_encode($v),
-                $this->data,
+                function ($v) {
+                    return is_scalar($v) || $v === null ? (string) $v : json_encode($v);
+                },
+                $this->data
             );
         }
 
@@ -196,7 +209,7 @@ class HibiraPushMessage
             'body' => $this->body,
             'icon' => $this->icon,
             'deep_link' => $this->link,
-        ], fn ($v) => $v !== null);
+        ], [$this, 'notNull']);
 
         if ($notification !== []) {
             $payload['notification'] = $notification;
@@ -206,5 +219,10 @@ class HibiraPushMessage
         }
 
         return $payload;
+    }
+
+    protected function notNull($value): bool
+    {
+        return $value !== null;
     }
 }

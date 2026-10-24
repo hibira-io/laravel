@@ -9,7 +9,6 @@ use Hibira\Laravel\Http\Controllers\WebhookController;
 use Hibira\Laravel\Push\HibiraPushChannel;
 use Illuminate\Broadcasting\Broadcasters\PusherBroadcaster;
 use Illuminate\Broadcasting\BroadcastManager;
-use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -28,9 +27,15 @@ class HibiraServiceProvider extends ServiceProvider
             $this->app['config']->set('broadcasting.connections.hibira', ['driver' => 'hibira']);
         }
 
-        $this->app->singleton(Hibira::class, fn (Application $app) => new Hibira($app['config']['hibira']));
-        $this->app->singleton('hibira', fn (Application $app) => $app->make(Hibira::class)->realtime());
-        $this->app->singleton('hibira.push', fn (Application $app) => $app->make(Hibira::class)->push());
+        $this->app->singleton(Hibira::class, function ($app) {
+            return new Hibira($app['config']['hibira']);
+        });
+        $this->app->singleton('hibira', function ($app) {
+            return $app->make(Hibira::class)->realtime();
+        });
+        $this->app->singleton('hibira.push', function ($app) {
+            return $app->make(Hibira::class)->push();
+        });
 
         // Code that type-hints the Pusher SDK classes gets clients that talk
         // to Hibira, unless the app binds its own.
@@ -44,8 +49,8 @@ class HibiraServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->callAfterResolving(BroadcastManager::class, function (BroadcastManager $manager) {
-            $manager->extend('hibira', function (Application $app, array $config) {
+        $this->afterResolving(BroadcastManager::class, function (BroadcastManager $manager) {
+            $manager->extend('hibira', function ($app, array $config) {
                 // A connection may override any key of config/hibira.php.
                 $realtime = array_diff_key($config, ['driver' => true]) === []
                     ? $app->make('hibira')
@@ -55,8 +60,10 @@ class HibiraServiceProvider extends ServiceProvider
             });
         });
 
-        $this->callAfterResolving(ChannelManager::class, function (ChannelManager $channels) {
-            $channels->extend('hibira-push', fn (Application $app) => $app->make(HibiraPushChannel::class));
+        $this->afterResolving(ChannelManager::class, function (ChannelManager $channels) {
+            $channels->extend('hibira-push', function ($app) {
+                return $app->make(HibiraPushChannel::class);
+            });
         });
 
         $this->registerRoutes();
@@ -66,6 +73,16 @@ class HibiraServiceProvider extends ServiceProvider
             $this->publishes([__DIR__.'/../stubs/echo.js' => resource_path('js/echo.js')], 'hibira-echo');
 
             $this->commands([InstallCommand::class, CheckCommand::class]);
+        }
+    }
+
+    /** callAfterResolving() for Laravel versions before it existed. */
+    protected function afterResolving(string $abstract, callable $callback): void
+    {
+        $this->app->afterResolving($abstract, $callback);
+
+        if ($this->app->resolved($abstract)) {
+            $callback($this->app->make($abstract), $this->app);
         }
     }
 

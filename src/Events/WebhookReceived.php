@@ -15,12 +15,25 @@ class WebhookReceived
 {
     use Dispatchable;
 
-    public function __construct(
-        public string $name,
-        public ?string $channel,
-        public array $payload,
-        public int $timeMs,
-    ) {}
+    /** @var string */
+    public $name;
+
+    /** @var string|null */
+    public $channel;
+
+    /** @var array */
+    public $payload;
+
+    /** @var int */
+    public $timeMs;
+
+    public function __construct(string $name, ?string $channel, array $payload, int $timeMs)
+    {
+        $this->name = $name;
+        $this->channel = $channel;
+        $this->payload = $payload;
+        $this->timeMs = $timeMs;
+    }
 
     public function userId(): ?string
     {

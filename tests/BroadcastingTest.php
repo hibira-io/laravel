@@ -2,7 +2,6 @@
 
 namespace Hibira\Laravel\Tests;
 
-use Hibira\Laravel\Exceptions\MissingCredentials;
 use Hibira\Laravel\Facades\Hibira;
 use Illuminate\Broadcasting\Broadcasters\PusherBroadcaster;
 use Illuminate\Support\Facades\Broadcast;
@@ -22,9 +21,9 @@ class BroadcastingTest extends TestCase
         $settings = app('hibira')->getSettings();
 
         $this->assertSame('ws.hibira.io', $settings['host']);
-        $this->assertSame(443, $settings['port']);
+        $this->assertSame(443, (int) $settings['port']);
         $this->assertSame('https', $settings['scheme']);
-        $this->assertSame('1001', $settings['app_id']);
+        $this->assertSame('1001', (string) $settings['app_id']);
         $this->assertSame('pk_test', $settings['auth_key']);
         $this->assertSame(app('hibira'), app(Pusher::class));
         $this->assertSame(app('hibira'), Hibira::getFacadeRoot());
@@ -41,7 +40,10 @@ class BroadcastingTest extends TestCase
     {
         config(['broadcasting.connections.other' => ['driver' => 'hibira', 'key' => 'pk_other', 'host' => 'ws-sin.hibira.io']]);
 
-        $pusher = Broadcast::connection('other')->getPusher();
+        $broadcaster = Broadcast::connection('other');
+        $pusher = (function () {
+            return $this->pusher;
+        })->call($broadcaster);
 
         $this->assertSame('pk_other', $pusher->getSettings()['auth_key']);
         $this->assertSame('ws-sin.hibira.io', $pusher->getSettings()['host']);
@@ -49,7 +51,7 @@ class BroadcastingTest extends TestCase
 
     public function test_private_channel_auth_is_signed_with_the_app_secret(): void
     {
-        $auth = json_decode(app('hibira')->authorizeChannel('private-orders.1', '123.456'), true)['auth'];
+        $auth = json_decode(app('hibira')->socket_auth('private-orders.1', '123.456'), true)['auth'];
 
         $this->assertSame('pk_test:'.hash_hmac('sha256', '123.456:private-orders.1', 'sk_test'), $auth);
     }
@@ -60,15 +62,24 @@ class BroadcastingTest extends TestCase
 
         $this->assertInstanceOf(PushNotifications::class, $push);
         $this->assertSame($push, app(PushNotifications::class));
-        $endpoint = (new \ReflectionProperty($push, 'options'))->getValue($push)['endpoint'];
-        $this->assertSame('https://ws.hibira.io', $endpoint);
+        $property = new \ReflectionProperty($push, 'options');
+        $property->setAccessible(true);
+        $this->assertSame('https://ws.hibira.io', $property->getValue($push)['endpoint']);
     }
 
-    public function test_missing_credentials_name_the_env_variable(): void
+    public function test_missing_credentials_do_not_break_booting(): void
     {
-        $this->expectException(MissingCredentials::class);
-        $this->expectExceptionMessage('HIBIRA_APP_SECRET');
+        config(['hibira.secret' => null]);
 
-        (new \Hibira\Laravel\Hibira(['app_id' => '1', 'key' => 'k', 'secret' => '']))->realtime();
+        $this->assertInstanceOf(PusherBroadcaster::class, Broadcast::connection('hibira'));
+        $this->assertSame(['secret'], app(\Hibira\Laravel\Hibira::class)->missingRealtimeCredentials());
+    }
+
+    public function test_check_names_the_missing_env_variable(): void
+    {
+        config(['hibira.secret' => '']);
+
+        $this->assertSame(1, \Illuminate\Support\Facades\Artisan::call('hibira:check'));
+        $this->assertStringContainsString('HIBIRA_APP_SECRET', \Illuminate\Support\Facades\Artisan::output());
     }
 }

@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Event;
 
 class RoutesTest extends TestCase
 {
-    protected function defineEnvironment($app): void
+    protected function getEnvironmentSetUp($app)
     {
-        parent::defineEnvironment($app);
+        parent::getEnvironmentSetUp($app);
         $app['config']->set('hibira.push.token_route', 'push/user-token');
         $app['config']->set('hibira.push.token_middleware', ['web']);
         $app['config']->set('hibira.webhooks.path', 'hibira/webhook');
@@ -32,13 +32,22 @@ class RoutesTest extends TestCase
             ['name' => 'member_added', 'channel' => 'presence-room.1', 'user_id' => '7'],
         ]]);
 
-        $this->webhook($body, ['HTTP_X_PUSHER_SIGNATURE' => hash_hmac('sha256', $body, 'sk_test')])->assertOk();
+        $this->webhook($body, ['HTTP_X_PUSHER_SIGNATURE' => hash_hmac('sha256', $body, 'sk_test')])->assertStatus(200);
 
-        Event::assertDispatchedTimes(WebhookReceived::class, 2);
-        Event::assertDispatched(WebhookReceived::class, fn ($e) => $e->name === 'member_added' && $e->userId() === '7' && $e->timeMs === 1792458481958);
+        $events = [];
+        Event::assertDispatched(WebhookReceived::class, function ($e) use (&$events) {
+            $events[] = $e;
+
+            return true;
+        });
+        $this->assertCount(2, $events);
+        $this->assertSame('channel_occupied', $events[0]->name);
+        $this->assertSame('orders', $events[0]->channel);
+        $this->assertSame('7', $events[1]->userId());
+        $this->assertSame(1792458481958, $events[1]->timeMs);
     }
 
-    public function test_webhook_rejects_a_bad_signature(): void
+    public function test_webhook_rejects_a_bad_signature_or_key(): void
     {
         Event::fake([WebhookReceived::class]);
         $body = '{"time_ms":1,"events":[]}';
@@ -56,19 +65,21 @@ class RoutesTest extends TestCase
         $this->webhook($body, [
             'HTTP_X_PUSHER_SIGNATURE' => hash_hmac('sha256', $body, 'sk_new'),
             'HTTP_X_HIBIRA_PREVIOUS_SIGNATURE' => hash_hmac('sha256', $body, 'sk_test'),
-        ])->assertOk();
+        ])->assertStatus(200);
     }
 
     public function test_push_token_for_the_signed_in_user_only(): void
     {
-        $user = (new User())->forceFill(['id' => 42]);
+        $user = new User();
+        $user->forceFill(['id' => 42]);
 
         $this->get('/push/user-token?user_id=42')->assertStatus(401);
         $this->actingAs($user)->get('/push/user-token?user_id=7')->assertStatus(401);
 
-        $token = $this->actingAs($user)->get('/push/user-token?user_id=42')->assertOk()->json('token');
-        [, $payload] = explode('.', $token);
-        $claims = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+        $response = $this->actingAs($user)->get('/push/user-token?user_id=42');
+        $response->assertStatus(200);
+        $token = json_decode($response->getContent(), true)['token'];
+        $claims = json_decode(base64_decode(strtr(explode('.', $token)[1], '-_', '+/')), true);
         $this->assertSame('42', $claims['sub']);
     }
 }

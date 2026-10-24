@@ -11,7 +11,7 @@ broadcaster already works with it. This package saves the wiring: a
 client, a notification channel for iOS, Android and browser push, a
 verified webhook route and a command that checks your credentials.
 
-Supports Laravel 11, 12 and 13 (PHP 8.2+).
+Supports Laravel 5.6 to 13 (PHP 7.1.3+), with pusher-php-server 3 to 7.
 
 ## Install
 
@@ -21,8 +21,9 @@ php artisan hibira:install
 ```
 
 `hibira:install` adds the `HIBIRA_*` settings to `.env` and `.env.example`,
-sets `BROADCAST_CONNECTION=hibira` and writes `resources/js/echo.js`. It
-never overwrites a value you already have.
+sets `BROADCAST_CONNECTION=hibira` (`BROADCAST_DRIVER` before Laravel 11)
+and writes `resources/js/echo.js`, for Vite or, in older apps, Laravel Mix.
+It never overwrites a value you already have.
 
 Copy the app ID, key and secret from your app page on
 [hibira.io/portal](https://hibira.io/portal) (the free plan needs no card):
@@ -42,7 +43,9 @@ php artisan hibira:check
 ```
 
 If your project has no `routes/channels.php` yet, run
-`php artisan install:broadcasting --without-reverb --without-node` first.
+`php artisan install:broadcasting --without-reverb --without-node` first
+(Laravel 11 and later; older apps ship the file and register it with
+`App\Providers\BroadcastServiceProvider`).
 
 ## Broadcasting
 
@@ -78,7 +81,8 @@ Type-hinting `Pusher\Pusher` gives you the same client.
 
 ## Laravel Echo
 
-`hibira:install` writes this `resources/js/echo.js`:
+`hibira:install` writes this `resources/js/echo.js` (with
+`process.env.MIX_HIBIRA_*` instead in Laravel Mix apps):
 
 ```js
 import Echo from 'laravel-echo';
@@ -213,7 +217,8 @@ secret until you deploy the new one.
 
 ## Configuration
 
-Publish `config/hibira.php` to change more:
+`client_options` needs pusher-php-server 5 or later. Publish
+`config/hibira.php` to change more:
 
 ```sh
 php artisan vendor:publish --tag=hibira-config
@@ -252,11 +257,12 @@ Your events, channel names and `routes/channels.php` stay the same. Run
 options to the `VITE_HIBIRA_*` ones (or let `hibira:install --force`
 replace `echo.js`). You can remove the `PUSHER_*` settings afterwards.
 
-On Laravel 10 or older, skip the package and set the host on the built-in
-`pusher` connection:
+Without the package, the built-in `pusher` connection works too, as long as
+`config/broadcasting.php` passes `host`, `port`, `scheme` and `useTLS` in its
+options (configs from older Laravel versions often pass only the cluster,
+which sends traffic to pusher.com):
 
 ```ini
-BROADCAST_DRIVER=pusher
 PUSHER_HOST=ws.hibira.io
 PUSHER_PORT=443
 PUSHER_SCHEME=https

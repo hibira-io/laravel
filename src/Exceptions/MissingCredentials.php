@@ -18,7 +18,7 @@ class MissingCredentials extends RuntimeException
     {
         return new self(sprintf(
             'Hibira: hibira.%s is not set. Copy it from your app page on hibira.io into %s in .env.',
-            $name, self::ENV[$name],
+            $name, self::ENV[$name]
         ));
     }
 
@@ -26,7 +26,7 @@ class MissingCredentials extends RuntimeException
     {
         return new self(sprintf(
             'Hibira: hibira.push.%s is not set. Enable push on your app page on hibira.io and copy it into %s in .env.',
-            $name, self::ENV[$name],
+            $name, self::ENV[$name]
         ));
     }
 }

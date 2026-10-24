@@ -16,40 +16,57 @@ class Hibira
 
     public const DEFAULT_PUSH_ENDPOINT = 'https://ws.hibira.io';
 
-    public function __construct(protected array $config) {}
+    /** @var array */
+    protected $config;
 
-    /** The client that triggers events and calls the Channels HTTP API. */
-    public function realtime(): Pusher
+    public function __construct(array $config)
     {
-        foreach (['key', 'secret', 'app_id'] as $name) {
-            if (blank($this->config[$name] ?? null)) {
-                throw MissingCredentials::realtime($name);
-            }
-        }
+        $this->config = $config;
+    }
 
+    /**
+     * The client that triggers events and calls the Channels HTTP API.
+     *
+     * @return Pusher
+     */
+    public function realtime()
+    {
+        // Missing credentials don't throw here: the broadcaster is built while
+        // the app boots (routes/channels.php), and artisan must keep working
+        // before .env is filled in. hibira:check names what is missing.
         $scheme = $this->config['scheme'] ?? 'https';
         $options = array_replace([
             'host' => $this->config['host'] ?? self::DEFAULT_HOST,
             'port' => (int) ($this->config['port'] ?? ($scheme === 'https' ? 443 : 80)),
             'scheme' => $scheme,
             'useTLS' => $scheme === 'https',
+            'encrypted' => $scheme === 'https', // pusher-php-server 3.x
         ], $this->config['options'] ?? []);
 
-        $client = empty($this->config['client_options'])
-            ? null
-            : new GuzzleClient($this->config['client_options']);
+        $args = [(string) $this->config['key'], (string) $this->config['secret'], (string) $this->config['app_id'], $options];
 
-        return new Pusher(
-            (string) $this->config['key'],
-            (string) $this->config['secret'],
-            (string) $this->config['app_id'],
-            $options,
-            $client,
-        );
+        // pusher-php-server 5 and later take a Guzzle client.
+        if (! empty($this->config['client_options'])) {
+            $args[] = new GuzzleClient($this->config['client_options']);
+        }
+
+        return new Pusher(...$args);
     }
 
-    /** The Beams-compatible push notifications client. */
-    public function push(): PushNotifications
+    /** @return list<string> the config keys of missing realtime credentials */
+    public function missingRealtimeCredentials(): array
+    {
+        return array_values(array_filter(['app_id', 'key', 'secret'], function ($name) {
+            return blank($this->config[$name] ?? null);
+        }));
+    }
+
+    /**
+     * The Beams-compatible push notifications client.
+     *
+     * @return PushNotifications
+     */
+    public function push()
     {
         $push = $this->config['push'] ?? [];
 

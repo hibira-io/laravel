@@ -4,7 +4,7 @@
 
 First release.
 
-- `hibira` broadcast connection for Laravel 11, 12 and 13, with no entry
+- `hibira` broadcast connection for Laravel 5.6 to 13, with no entry
   needed in `config/broadcasting.php`.
 - `Hibira` and `HibiraPush` facades; `Pusher\Pusher` and
   `Pusher\PushNotifications\PushNotifications` resolve to clients pointed at

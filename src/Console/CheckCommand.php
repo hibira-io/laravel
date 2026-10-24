@@ -2,6 +2,9 @@
 
 namespace Hibira\Laravel\Console;
 
+use Exception;
+use Hibira\Laravel\Exceptions\MissingCredentials;
+use Hibira\Laravel\Hibira;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -16,32 +19,49 @@ class CheckCommand extends Command
         $config = config('hibira');
         $connection = config('broadcasting.default');
 
-        $this->components->twoColumnDetail('Host', $config['scheme'].'://'.$config['host'].':'.$config['port']);
-        $this->components->twoColumnDetail('Broadcast connection', $connection === 'hibira' ? 'hibira' : "<fg=yellow>$connection</> (set BROADCAST_CONNECTION=hibira)");
+        $this->line(sprintf('  Host: %s://%s:%s', $config['scheme'], $config['host'], $config['port']));
+        if ($connection === 'hibira') {
+            $this->line('  Broadcast connection: hibira');
+        } else {
+            $this->warn("  Broadcast connection: $connection (set BROADCAST_CONNECTION=hibira)");
+        }
+
+        $missing = app(Hibira::class)->missingRealtimeCredentials();
+        if ($missing !== []) {
+            $this->error('  Realtime: '.MissingCredentials::realtime($missing[0])->getMessage());
+
+            return 1;
+        }
 
         try {
-            $channels = app('hibira')->getChannels();
+            // get() exists in every pusher-php-server version; 3.x and 4.x
+            // return false or a status array instead of throwing.
+            $result = app('hibira')->get('/channels');
+            if ($result === false || (is_array($result) && ($result['status'] ?? 200) !== 200)) {
+                throw new Exception('the Channels API refused the request. Check HIBIRA_APP_ID, HIBIRA_APP_KEY, HIBIRA_APP_SECRET and HIBIRA_HOST.');
+            }
         } catch (Throwable $e) {
-            $this->components->error('Realtime: '.$e->getMessage());
+            $this->error('  Realtime: '.$e->getMessage());
 
-            return self::FAILURE;
+            return 1;
         }
-
-        $this->components->twoColumnDetail('Realtime', '<fg=green>OK</>, '.count((array) ($channels->channels ?? [])).' occupied channels');
+        $this->info('  Realtime: OK');
 
         if (blank($config['push']['instance_id'] ?? null)) {
-            $this->components->twoColumnDetail('Push notifications', '<fg=gray>not configured</>');
-        } else {
-            try {
-                app('hibira.push')->generateToken('hibira-check');
-                $this->components->twoColumnDetail('Push notifications', '<fg=green>configured</> ('.$config['push']['endpoint'].')');
-            } catch (Throwable $e) {
-                $this->components->error('Push notifications: '.$e->getMessage());
+            $this->line('  Push notifications: not configured');
 
-                return self::FAILURE;
-            }
+            return 0;
         }
 
-        return self::SUCCESS;
+        try {
+            app('hibira.push')->generateToken('hibira-check');
+        } catch (Throwable $e) {
+            $this->error('  Push notifications: '.$e->getMessage());
+
+            return 1;
+        }
+        $this->info('  Push notifications: configured ('.$config['push']['endpoint'].')');
+
+        return 0;
     }
 }

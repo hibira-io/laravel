@@ -22,9 +22,18 @@ class HibiraPushChannel
 
     public const MAX_INTERESTS = 100;
 
-    public function __construct(protected ?PushNotifications $push = null) {}
+    /** @var PushNotifications|null */
+    protected $push;
 
-    public function send(object $notifiable, Notification $notification): array
+    public function __construct(?PushNotifications $push = null)
+    {
+        $this->push = $push;
+    }
+
+    /**
+     * @param  mixed  $notifiable
+     */
+    public function send($notifiable, Notification $notification): array
     {
         if (! method_exists($notification, 'toHibiraPush')) {
             throw new InvalidArgumentException(get_class($notification).' must define toHibiraPush($notifiable) to use the hibira-push channel.');
@@ -60,7 +69,7 @@ class HibiraPushChannel
     }
 
     /** @return list<string> */
-    protected function users(object $notifiable, Notification $notification): array
+    protected function users($notifiable, Notification $notification): array
     {
         $route = method_exists($notifiable, 'routeNotificationFor')
             ? $notifiable->routeNotificationFor('hibira-push', $notification)
@@ -70,6 +79,8 @@ class HibiraPushChannel
             $route = $notifiable->getKey();
         }
 
-        return array_values(array_unique(array_map('strval', array_filter((array) $route, fn ($id) => $id !== null && $id !== ''))));
+        return array_values(array_unique(array_map('strval', array_filter((array) $route, function ($id) {
+            return $id !== null && $id !== '';
+        }))));
     }
 }

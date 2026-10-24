@@ -6,7 +6,7 @@ use Hibira\Laravel\Push\HibiraPushChannel;
 use Hibira\Laravel\Push\HibiraPushMessage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Mockery;
 use Pusher\PushNotifications\PushNotifications;
 
 class PushChannelTest extends TestCase
@@ -38,38 +38,35 @@ class PushChannelTest extends TestCase
         $this->assertSame('Hi', $request['apns']['aps']['alert']['title']);
     }
 
-    public function test_sends_to_the_notifiable_user(): void
+    public function test_notify_sends_to_the_notifiable_user(): void
     {
-        $push = $this->mock(PushNotifications::class);
-        $push->shouldReceive('publishToUsers')->once()->with(['42'], \Mockery::on(fn ($r) => $r['fcm']['notification']['title'] === 'Hello'))->andReturn((object) ['publishId' => 'p1']);
+        $push = Mockery::mock(PushNotifications::class);
+        $push->shouldReceive('publishToUsers')->once()->with(['42'], Mockery::on(function ($r) {
+            return $r['fcm']['notification']['title'] === 'Hello';
+        }))->andReturn((object) ['publishId' => 'p1']);
         $this->app->instance('hibira.push', $push);
 
         (new PushUser(42))->notify(new HelloNotification());
+        $this->addToAssertionCount(1);
     }
 
-    public function test_route_method_and_interests(): void
+    public function test_interests_instead_of_the_user(): void
     {
-        $push = $this->mock(PushNotifications::class);
-        $push->shouldReceive('publishToInterests')->once()->with(['news'], \Mockery::type('array'));
+        $push = Mockery::mock(PushNotifications::class);
+        $push->shouldReceive('publishToInterests')->once()->with(['news'], Mockery::type('array'));
         $push->shouldNotReceive('publishToUsers');
 
         (new HibiraPushChannel($push))->send(new PushUser(1), new HelloNotification(['news']));
+        $this->addToAssertionCount(1);
     }
 
-    public function test_users_are_chunked_by_1000(): void
+    public function test_route_method_and_chunks_of_1000_users(): void
     {
-        $push = $this->mock(PushNotifications::class);
+        $push = Mockery::mock(PushNotifications::class);
         $push->shouldReceive('publishToUsers')->twice();
 
-        $users = new class { public function routeNotificationFor($channel) { return range(1, 1500); } };
-        (new HibiraPushChannel($push))->send($users, new HelloNotification());
-    }
-
-    public function test_channel_name_is_registered(): void
-    {
-        NotificationFacade::fake();
-        (new PushUser(1))->notify(new HelloNotification());
-        NotificationFacade::assertSentTo(new PushUser(1), HelloNotification::class, fn ($n, $channels) => $channels === ['hibira-push']);
+        (new HibiraPushChannel($push))->send(new ManyUsers(), new HelloNotification());
+        $this->addToAssertionCount(1);
     }
 }
 
@@ -77,24 +74,44 @@ class PushUser
 {
     use Notifiable;
 
-    public function __construct(public int $id) {}
+    public $id;
 
-    public function getKey(): int
+    public function __construct(int $id)
+    {
+        $this->id = $id;
+    }
+
+    public function getKey()
     {
         return $this->id;
     }
 }
 
+class ManyUsers
+{
+    use Notifiable;
+
+    public function routeNotificationForHibiraPush()
+    {
+        return range(1, 1500);
+    }
+}
+
 class HelloNotification extends Notification
 {
-    public function __construct(public array $interests = []) {}
+    public $interests;
 
-    public function via($notifiable): array
+    public function __construct(array $interests = [])
+    {
+        $this->interests = $interests;
+    }
+
+    public function via($notifiable)
     {
         return ['hibira-push'];
     }
 
-    public function toHibiraPush($notifiable): HibiraPushMessage
+    public function toHibiraPush($notifiable)
     {
         return HibiraPushMessage::create('Hello', 'From Hibira')->interests(...$this->interests);
     }
