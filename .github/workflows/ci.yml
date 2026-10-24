@@ -1,0 +1,71 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - laravel: "5.6.*"
+            testbench: "3.6.*"
+            php: "7.2"
+          - laravel: "5.6.*"
+            testbench: "3.6.*"
+            php: "7.2"
+            lowest: "--prefer-lowest"
+          - laravel: "5.7.*"
+            testbench: "3.7.*"
+            php: "7.2"
+          - laravel: "5.8.*"
+            testbench: "3.8.*"
+            php: "7.2"
+          - laravel: "6.*"
+            testbench: "4.*"
+            php: "7.3"
+          - laravel: "7.*"
+            testbench: "5.*"
+            php: "7.4"
+          - laravel: "8.*"
+            testbench: "6.*"
+            php: "8.0"
+          - laravel: "9.*"
+            testbench: "7.*"
+            php: "8.1"
+          - laravel: "10.*"
+            testbench: "8.*"
+            php: "8.2"
+          - laravel: "11.*"
+            testbench: "9.*"
+            php: "8.2"
+          - laravel: "12.*"
+            testbench: "10.*"
+            php: "8.3"
+          - laravel: "13.*"
+            testbench: "11.*"
+            php: "8.4"
+    name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }} ${{ matrix.lowest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Install
+        env:
+          COMPOSER_NO_SECURITY_BLOCKING: "1"
+        run: |
+          # Every Laravel release before the current ones has a security
+          # advisory, and Composer refuses those by default. The old majors
+          # are tested on purpose; apps choose their own versions.
+          php -r '$c = json_decode(file_get_contents("composer.json"), true); $c["config"]["audit"]["block-insecure"] = false; $c["config"]["policy"]["advisories"]["block"] = false; file_put_contents("composer.json", json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
+          composer require "illuminate/support:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update ${{ matrix.lowest }} --no-plugins --prefer-dist --no-interaction --no-progress --with-all-dependencies
+      - run: vendor/bin/phpunit
