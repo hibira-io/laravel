@@ -17,6 +17,10 @@ jobs:
           - laravel: "5.6.*"
             testbench: "3.6.*"
             php: "7.2"
+          - laravel: "5.6.*"
+            testbench: "3.6.*"
+            php: "7.2"
+            lowest: "--prefer-lowest"
           - laravel: "5.7.*"
             testbench: "3.7.*"
             php: "7.2"
@@ -47,7 +51,7 @@ jobs:
           - laravel: "13.*"
             testbench: "11.*"
             php: "8.4"
-    name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }}
+    name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }} ${{ matrix.lowest }}
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -57,5 +61,5 @@ jobs:
       - name: Install
         run: |
           composer require "illuminate/support:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
-          composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
+          composer update ${{ matrix.lowest }} --prefer-dist --no-interaction --no-progress --with-all-dependencies
       - run: vendor/bin/phpunit
