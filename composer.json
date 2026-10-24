@@ -1,0 +1,53 @@
+{
+    "name": "hibira-io/laravel",
+    "description": "Laravel broadcasting, push notifications and webhooks for Hibira, with one composer require",
+    "keywords": ["laravel", "broadcasting", "websockets", "realtime", "push notifications", "echo", "hibira"],
+    "homepage": "https://github.com/hibira-io/laravel",
+    "license": "MIT",
+    "authors": [
+        {"name": "Hibira", "homepage": "https://hibira.io"}
+    ],
+    "support": {
+        "issues": "https://github.com/hibira-io/laravel/issues",
+        "docs": "https://github.com/hibira-io/laravel#readme",
+        "email": "support@hibira.io"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/broadcasting": "^11.0|^12.0|^13.0",
+        "illuminate/console": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/notifications": "^11.0|^12.0|^13.0",
+        "illuminate/routing": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "pusher/pusher-php-server": "^7.2",
+        "pusher/pusher-push-notifications": "^2.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {"Hibira\\Laravel\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Hibira\\Laravel\\Tests\\": "tests/"}
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Hibira\\Laravel\\HibiraServiceProvider"],
+            "aliases": {
+                "Hibira": "Hibira\\Laravel\\Facades\\Hibira",
+                "HibiraPush": "Hibira\\Laravel\\Facades\\HibiraPush"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
