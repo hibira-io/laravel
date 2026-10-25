@@ -66,6 +66,7 @@ jobs:
           # advisory, and Composer refuses those by default. The old majors
           # are tested on purpose; apps choose their own versions.
           php -r '$c = json_decode(file_get_contents("composer.json"), true); $c["config"]["audit"]["block-insecure"] = false; $c["config"]["policy"]["advisories"]["block"] = false; file_put_contents("composer.json", json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
-          composer require "illuminate/support:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer require "illuminate/support:${{ matrix.laravel }}" --no-interaction --no-update
+          composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update ${{ matrix.lowest }} --no-plugins --prefer-dist --no-interaction --no-progress --with-all-dependencies
       - run: vendor/bin/phpunit
