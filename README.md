@@ -283,6 +283,3 @@ composer test
 ## License
 
 [MIT](LICENSE)
-
-Hibira is not affiliated with Pusher Ltd. or MessageBird. "Pusher" is used
-only to describe protocol compatibility.
