@@ -9,7 +9,7 @@ window.Echo = new Echo({
     broadcaster: 'pusher',
     key: process.env.MIX_HIBIRA_APP_KEY,
     // pusher-js requires a cluster, but does not use it once wsHost is set.
-    cluster: 'hibira',
+    cluster: 'hkg',
     wsHost: process.env.MIX_HIBIRA_HOST || 'ws.hibira.io',
     wsPort: port,
     wssPort: port,

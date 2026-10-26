@@ -93,7 +93,7 @@ window.Pusher = Pusher;
 window.Echo = new Echo({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_HIBIRA_APP_KEY,
-    cluster: 'hibira', // required by pusher-js, unused once wsHost is set
+    cluster: 'hkg', // required by pusher-js, unused once wsHost is set
     wsHost: import.meta.env.VITE_HIBIRA_HOST ?? 'ws.hibira.io',
     wsPort: 443,
     wssPort: 443,
@@ -226,7 +226,7 @@ php artisan vendor:publish --tag=hibira-config
 
 | Setting | `.env` | Default |
 |---|---|---|
-| `host` | `HIBIRA_HOST` | `ws.hibira.io`; `ws-<cluster>.hibira.io` for apps in another region |
+| `host` | `HIBIRA_HOST` | `ws.hibira.io`; use the host your app page shows, such as `ws-edge.hibira.io` for apps on Pro and up that use edge delivery, or `ws-<cluster>.hibira.io` for apps in another region |
 | `port`, `scheme` | `HIBIRA_PORT`, `HIBIRA_SCHEME` | `443`, `https` |
 | `options`, `client_options` | | Extra pusher-php-server and Guzzle options |
 | `push.endpoint` | `HIBIRA_PUSH_ENDPOINT` | `https://ws.hibira.io` |
