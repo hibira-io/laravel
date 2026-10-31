@@ -1,5 +1,7 @@
 # hibira-io/laravel
 
+![hibira-io/laravel](.github/cover.jpg)
+
 [![ci](https://github.com/hibira-io/laravel/actions/workflows/ci.yml/badge.svg)](https://github.com/hibira-io/laravel/actions/workflows/ci.yml)
 
 Laravel broadcasting, push notifications, webhooks and Laravel AI SDK
