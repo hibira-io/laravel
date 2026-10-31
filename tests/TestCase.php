@@ -10,7 +10,12 @@ abstract class TestCase extends Orchestra
 {
     protected function getPackageProviders($app)
     {
-        return [HibiraServiceProvider::class];
+        $providers = [HibiraServiceProvider::class];
+        if (class_exists('Laravel\Ai\AiServiceProvider')) {
+            $providers[] = 'Laravel\Ai\AiServiceProvider';
+        }
+
+        return $providers;
     }
 
     protected function getEnvironmentSetUp($app)

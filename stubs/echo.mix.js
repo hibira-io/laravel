@@ -16,3 +16,24 @@ window.Echo = new Echo({
     forceTLS: (process.env.MIX_HIBIRA_SCHEME || 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
 });
+
+// Events bigger than your plan's limit (4 KB on Free), such as Laravel AI SDK
+// tool results, arrive as "hibira:chunk" pieces. Join them and hand the
+// original event to your Echo listeners.
+const subscribe = window.Echo.connector.pusher.subscribe.bind(window.Echo.connector.pusher);
+window.Echo.connector.pusher.subscribe = (name) => {
+    const channel = subscribe(name);
+    if (!channel.hibiraChunks) {
+        channel.hibiraChunks = {};
+        channel.bind('hibira:chunk', (chunk) => {
+            const parts = channel.hibiraChunks[chunk.id] || (channel.hibiraChunks[chunk.id] = []);
+            if (parts.done) return;
+            parts[chunk.index] = chunk.data;
+            if (parts.filter((part) => part !== undefined).length < chunk.count) return;
+            const json = parts.join('');
+            channel.hibiraChunks[chunk.id] = { done: true };
+            channel.emit(chunk.event, JSON.parse(json));
+        });
+    }
+    return channel;
+};

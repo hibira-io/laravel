@@ -2,14 +2,15 @@
 
 [![ci](https://github.com/hibira-io/laravel/actions/workflows/ci.yml/badge.svg)](https://github.com/hibira-io/laravel/actions/workflows/ci.yml)
 
-Laravel broadcasting, push notifications and webhooks for
-[Hibira](https://hibira.io), set up with one `composer require`.
+Laravel broadcasting, push notifications, webhooks and Laravel AI SDK
+streaming for [Hibira](https://hibira.io), set up with one `composer require`.
 
 Hibira speaks the Pusher Channels protocol, so Laravel's built-in `pusher`
 broadcaster already works with it. This package saves the wiring: a
 `hibira` broadcast connection that points at the right host, a Laravel Echo
 client, a notification channel for iOS, Android and browser push, a
-verified webhook route and a command that checks your credentials.
+verified webhook route, Laravel AI SDK agent streams that fit every plan's
+event size limit, and `hibira:doctor` to check the whole setup.
 
 Supports Laravel 5.6 to 13 (PHP 7.1.3+), with pusher-php-server 3 to 7.
 
@@ -215,6 +216,102 @@ The route skips CSRF because it is outside the `web` middleware group.
 After you rotate the app secret, webhooks keep verifying with the old
 secret until you deploy the new one.
 
+## Laravel AI SDK agents
+
+With the [Laravel AI SDK](https://github.com/laravel/ai) (`laravel/ai`, Laravel 12+ and PHP 8.3+),
+queue an agent and stream its events to the signed-in user's private
+channel:
+
+```php
+use App\Ai\Agents\SupportAgent;
+use Hibira\Laravel\Ai\AgentChannel;
+
+Route::post('/chat', function (Request $request) {
+    (new SupportAgent)
+        ->forUser($request->user())
+        ->broadcastOnQueue($request->string('message'), AgentChannel::user($request->user()));
+
+    return response()->noContent();
+})->middleware('auth');
+```
+
+`AgentChannel::user($user)` is `private-hibira-ai.user.{id}`, and
+`AgentChannel::conversation($conversationId)` is
+`private-hibira-ai.conversation.{id}`. The package authorizes both: a user
+may join only their own channel, and a conversation's channel only when
+the conversation was stored for them. You don't add them to
+`routes/channels.php` (set `HIBIRA_AI_CHANNELS=false` to authorize them
+yourself). Keep a queue worker running.
+
+To finish a turn that paused for tool approvals, broadcast the rest on the
+same channel:
+
+```php
+(new SupportAgent)
+    ->continue($conversationId, as: $user)
+    ->broadcastOnQueue(Decisions::from($request->input('decisions')), AgentChannel::user($user));
+```
+
+In the browser, [`@hibira-io/react`](https://github.com/hibira-io/react)
+and [`@hibira-io/vue`](https://github.com/hibira-io/vue) (0.2 and later)
+put the stream back together, on the Echo connection you already have:
+
+```jsx
+import { HibiraProvider, useAgentStream } from '@hibira-io/react';
+
+<HibiraProvider client={window.Echo.connector.pusher}>
+    <Chat />
+</HibiraProvider>
+
+function Chat() {
+    const { text, status, toolCalls, approvals, error } = useAgentStream(`private-hibira-ai.user.${user.id}`, { rewind: true });
+    // status: idle, streaming, awaiting_approval, done or error
+}
+```
+
+`rewind: true` replays what the page missed after a reload or a dropped
+connection when channel history is on for the app (Hobby plans and up).
+
+### Events over 4 KB
+
+The Free plan accepts events of up to 4 KB (10 KB on Hobby and Starter),
+and a tool result is often bigger: the Channels API refuses it and the
+browser never sees it. The `hibira` connection splits any Laravel AI
+stream event over `HIBIRA_MAX_EVENT_BYTES` into `hibira:chunk` events
+that `useAgentStream()`, and the `echo.js` stub for Echo listeners, join
+back together. You don't need `#[WithoutBroadcasting(ToolResult::class)]`
+to stay under the limit.
+
+```ini
+HIBIRA_MAX_EVENT_BYTES=4096   # your plan's per-event limit; higher means fewer chunks
+HIBIRA_CHUNK_EVENTS=ai        # ai (default), all (every event), or off
+```
+
+Each chunk counts as a message. With `all`, your own big events are split
+too, and every listener needs the joiner: re-run `php artisan
+hibira:install --force`, or copy the end of
+[`stubs/echo.js`](stubs/echo.js) into your `echo.js`.
+
+### Laravel Boost
+
+The package ships [Laravel Boost](https://github.com/laravel/boost)
+guidelines and a `hibira-realtime` skill. Run `php artisan boost:install`
+(or `boost:update`) and your AI agent knows how to broadcast, stream
+agents and check the setup.
+
+## Checking the setup
+
+```sh
+php artisan hibira:doctor
+```
+
+It checks the credentials (as `hibira:check` does), the broadcast
+connection, the `/broadcasting/auth` route, the queue, `VITE_HIBIRA_APP_KEY`,
+the Echo file, chunking and, with `laravel/ai`, the agent channels,
+agents that skip broadcasting tool results and your `@hibira-io/react` /
+`vue` versions. Each problem comes with the fix. `--offline` skips the
+API call.
+
 ## Configuration
 
 `client_options` needs pusher-php-server 5 or later. Publish
@@ -232,6 +329,9 @@ php artisan vendor:publish --tag=hibira-config
 | `push.endpoint` | `HIBIRA_PUSH_ENDPOINT` | `https://ws.hibira.io` |
 | `push.token_route` | `HIBIRA_PUSH_TOKEN_ROUTE` | off |
 | `webhooks.path` | `HIBIRA_WEBHOOK_PATH` | off |
+| `chunking.max_bytes` | `HIBIRA_MAX_EVENT_BYTES` | `4096`, the Free plan's per-event limit |
+| `chunking.events` | `HIBIRA_CHUNK_EVENTS` | `ai`; or `all`, `off` |
+| `ai.channels` | `HIBIRA_AI_CHANNELS` | `true`: authorize the `AgentChannel` channels |
 
 The `hibira` broadcast connection needs no entry in
 `config/broadcasting.php`. To broadcast to a second Hibira app, add a

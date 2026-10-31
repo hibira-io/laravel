@@ -7,6 +7,8 @@
         "websockets",
         "realtime",
         "push notifications",
+        "ai",
+        "laravel-ai",
         "echo",
         "hibira"
     ],
@@ -39,6 +41,9 @@
         "orchestra/testbench": "^3.6|^4.0|^5.0|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0",
         "phpunit/phpunit": "^7.5|^8.0|^9.0|^10.0|^11.0|^12.0"
     },
+    "suggest": {
+        "laravel/ai": "Stream Laravel AI SDK agents to the browser with broadcastOnQueue() and useAgentStream()"
+    },
     "autoload": {
         "psr-4": {
             "Hibira\\Laravel\\": "src/"
@@ -60,7 +65,7 @@
             }
         },
         "branch-alias": {
-            "dev-main": "0.1.x-dev"
+            "dev-main": "0.2.x-dev"
         }
     },
     "scripts": {

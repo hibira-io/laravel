@@ -51,7 +51,11 @@ jobs:
           - laravel: "13.*"
             testbench: "11.*"
             php: "8.4"
-    name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }} ${{ matrix.lowest }}
+          - laravel: "13.*"
+            testbench: "11.*"
+            php: "8.4"
+            ai: "^1.3"
+    name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }} ${{ matrix.lowest }} ${{ matrix.ai && format('/ laravel/ai {0}', matrix.ai) || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -68,5 +72,6 @@ jobs:
           php -r '$c = json_decode(file_get_contents("composer.json"), true); $c["config"]["audit"]["block-insecure"] = false; $c["config"]["policy"]["advisories"]["block"] = false; file_put_contents("composer.json", json_encode($c, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
           composer require "illuminate/support:${{ matrix.laravel }}" --no-interaction --no-update
           composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          if [ -n "${{ matrix.ai }}" ]; then composer require --dev "laravel/ai:${{ matrix.ai }}" --no-interaction --no-update; fi
           composer update ${{ matrix.lowest }} --no-plugins --prefer-dist --no-interaction --no-progress --with-all-dependencies
       - run: vendor/bin/phpunit
