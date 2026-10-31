@@ -2,12 +2,13 @@
 
 namespace Hibira\Laravel;
 
+use Hibira\Laravel\Ai\AgentChannel;
 use Hibira\Laravel\Console\CheckCommand;
+use Hibira\Laravel\Console\DoctorCommand;
 use Hibira\Laravel\Console\InstallCommand;
 use Hibira\Laravel\Http\Controllers\PushTokenController;
 use Hibira\Laravel\Http\Controllers\WebhookController;
 use Hibira\Laravel\Push\HibiraPushChannel;
-use Illuminate\Broadcasting\Broadcasters\PusherBroadcaster;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Route;
@@ -56,7 +57,20 @@ class HibiraServiceProvider extends ServiceProvider
                     ? $app->make('hibira')
                     : (new Hibira(array_replace($app['config']['hibira'], $config)))->realtime();
 
-                return new PusherBroadcaster($realtime);
+                $chunking = $app['config']['hibira.chunking'] ?? [];
+
+                $broadcaster = new HibiraBroadcaster(
+                    $realtime,
+                    (string) ($config['chunk_events'] ?? $chunking['events'] ?? 'ai'),
+                    (int) ($config['max_event_bytes'] ?? $chunking['max_bytes'] ?? 4096)
+                );
+
+                // extend() binds this closure to the manager, so no static:: here.
+                if (HibiraServiceProvider::agentChannelsEnabled($app)) {
+                    AgentChannel::register($broadcaster);
+                }
+
+                return $broadcaster;
             });
         });
 
@@ -72,8 +86,15 @@ class HibiraServiceProvider extends ServiceProvider
             $this->publishes([__DIR__.'/../config/hibira.php' => config_path('hibira.php')], 'hibira-config');
             $this->publishes([__DIR__.'/../stubs/echo.js' => resource_path('js/echo.js')], 'hibira-echo');
 
-            $this->commands([InstallCommand::class, CheckCommand::class]);
+            $this->commands([InstallCommand::class, CheckCommand::class, DoctorCommand::class]);
         }
+    }
+
+    /** Whether to authorize the AgentChannel channels (laravel/ai installed, not turned off). */
+    public static function agentChannelsEnabled($app): bool
+    {
+        return class_exists('Laravel\\Ai\\Ai')
+            && filter_var($app['config']['hibira.ai.channels'] ?? true, FILTER_VALIDATE_BOOLEAN);
     }
 
     /** callAfterResolving() for Laravel versions before it existed. */

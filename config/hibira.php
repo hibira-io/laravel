@@ -27,6 +27,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Chunking
+    |--------------------------------------------------------------------------
+    |
+    | An event bigger than max_bytes is split into "hibira:chunk" events that
+    | useAgentStream() and the echo.js stub join back together. 4096 is the
+    | Free plan's per-event limit; raise it to your plan's (10240 on Hobby and
+    | Starter) to split less.
+    |
+    | events: "ai" splits only Laravel AI SDK stream events (tool results are
+    | often bigger than 4 KB), "all" every event (your listeners then need the
+    | echo.js joiner), "off" none.
+    |
+    */
+
+    'chunking' => [
+        'events' => env('HIBIRA_CHUNK_EVENTS', 'ai'),
+        'max_bytes' => (int) env('HIBIRA_MAX_EVENT_BYTES', 4096),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Laravel AI SDK
+    |--------------------------------------------------------------------------
+    |
+    | With laravel/ai installed, the private channels of
+    | Hibira\Laravel\Ai\AgentChannel (hibira-ai.user.{id} and
+    | hibira-ai.conversation.{id}) are authorized for their owners.
+    |
+    */
+
+    'ai' => [
+        'channels' => env('HIBIRA_AI_CHANNELS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Push notifications
     |--------------------------------------------------------------------------
     |
