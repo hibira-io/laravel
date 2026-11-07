@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- `pusher/pusher-push-notifications` is now optional (`suggest`), so
+  `composer require hibira-io/laravel` works on a fresh Laravel 13 app,
+  whose Guzzle 8 the Beams SDK does not support yet.
+- **Upgrading:** if you send push notifications, run
+  `composer require pusher/pusher-push-notifications -W`. Without it,
+  `hibira:check` and `app('hibira.push')` say what to install.
+
 ## 0.2.1
 
 - README: cover image and screenshots.

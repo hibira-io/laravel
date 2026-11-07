@@ -122,6 +122,13 @@ channel and [`@hibira-io/large-presence`](https://github.com/hibira-io/large-pre
 
 ## Push notifications
 
+Push uses the Beams server SDK, which is optional since 0.3. Install it
+first (`-W` lets Composer use Guzzle 7, which the SDK needs, on Laravel 13):
+
+```bash
+composer require pusher/pusher-push-notifications -W
+```
+
 Enable push on your app page (Push notifications), upload your APNs key or
 FCM service account there, and add:
 

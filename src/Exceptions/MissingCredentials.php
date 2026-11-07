@@ -29,4 +29,9 @@ class MissingCredentials extends RuntimeException
             $name, self::ENV[$name]
         ));
     }
+
+    public static function pushSdk(): self
+    {
+        return new self('Hibira: push notifications need the Beams server SDK. Run composer require pusher/pusher-push-notifications (add -W on Laravel 13, the SDK needs Guzzle 7).');
+    }
 }
