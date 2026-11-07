@@ -43,7 +43,7 @@ class HibiraServiceProvider extends ServiceProvider
         if (! $this->app->bound(Pusher::class)) {
             $this->app->alias('hibira', Pusher::class);
         }
-        if (! $this->app->bound(PushNotifications::class)) {
+        if (class_exists(PushNotifications::class) && ! $this->app->bound(PushNotifications::class)) {
             $this->app->alias('hibira.push', PushNotifications::class);
         }
     }

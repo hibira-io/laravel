@@ -75,6 +75,9 @@ class Hibira
                 throw MissingCredentials::push($name);
             }
         }
+        if (! class_exists(PushNotifications::class)) {
+            throw MissingCredentials::pushSdk();
+        }
 
         return new PushNotifications([
             'instanceId' => (string) $push['instance_id'],
