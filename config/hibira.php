@@ -86,6 +86,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Waiting rooms
+    |--------------------------------------------------------------------------
+    |
+    | Route::middleware('hibira.waiting:presale') sends visitors without a
+    | pass to the hosted waiting page of the "presale" room. Create rooms with
+    | php artisan hibira:waiting-room presale create --rate=300.
+    |
+    | enabled: false lets every request through (local development).
+    | previous_secret: during a secret rotation, passes signed with the old
+    | secret stay valid until they expire if you put it here.
+    | page_host: where the hosted waiting page lives (default: the host above).
+    |
+    */
+
+    'waiting_rooms' => [
+        'enabled' => env('HIBIRA_WAITING_ROOMS', true),
+        'previous_secret' => env('HIBIRA_PREVIOUS_APP_SECRET'),
+        'page_host' => env('HIBIRA_WAITING_ROOM_HOST'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Webhooks
     |--------------------------------------------------------------------------
     |

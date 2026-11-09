@@ -6,6 +6,9 @@ use Hibira\Laravel\Ai\AgentChannel;
 use Hibira\Laravel\Console\CheckCommand;
 use Hibira\Laravel\Console\DoctorCommand;
 use Hibira\Laravel\Console\InstallCommand;
+use Hibira\Laravel\Console\WaitingRoomCommand;
+use Hibira\Laravel\Http\Middleware\WaitingRoom as WaitingRoomMiddleware;
+use Hibira\Laravel\WaitingRooms\WaitingRooms;
 use Hibira\Laravel\Http\Controllers\PushTokenController;
 use Hibira\Laravel\Http\Controllers\WebhookController;
 use Hibira\Laravel\Push\HibiraPushChannel;
@@ -34,6 +37,10 @@ class HibiraServiceProvider extends ServiceProvider
         $this->app->singleton('hibira', function ($app) {
             return $app->make(Hibira::class)->realtime();
         });
+        $this->app->singleton(WaitingRooms::class, function ($app) {
+            return new WaitingRooms($app['config']['hibira']);
+        });
+        $this->app->alias(WaitingRooms::class, 'hibira.waiting-rooms');
         $this->app->singleton('hibira.push', function ($app) {
             return $app->make(Hibira::class)->push();
         });
@@ -80,13 +87,15 @@ class HibiraServiceProvider extends ServiceProvider
             });
         });
 
+        $this->app['router']->aliasMiddleware('hibira.waiting', WaitingRoomMiddleware::class);
+
         $this->registerRoutes();
 
         if ($this->app->runningInConsole()) {
             $this->publishes([__DIR__.'/../config/hibira.php' => config_path('hibira.php')], 'hibira-config');
             $this->publishes([__DIR__.'/../stubs/echo.js' => resource_path('js/echo.js')], 'hibira-echo');
 
-            $this->commands([InstallCommand::class, CheckCommand::class, DoctorCommand::class]);
+            $this->commands([InstallCommand::class, CheckCommand::class, DoctorCommand::class, WaitingRoomCommand::class]);
         }
     }
 

@@ -39,3 +39,8 @@ const { text, status, toolCalls, approvals, error } = useAgentStream(`private-hi
 @endverbatim
 
 - `rewind: true` replays missed events after a reload or reconnect when channel history is on for the app (Hobby plans and up); on Free it is ignored.
+
+## Waiting rooms
+
+- Put routes that get rushes (ticket drops, launches) behind a waiting room with `Route::middleware('hibira.waiting:ROOM')`; create the room once with `php artisan hibira:waiting-room ROOM create --rate=300`. Do not hand-write pass checks: the middleware verifies the pass and keeps it in a cookie, and the pass is `$request->attributes->get('hibira_pass')`.
+- Run rooms with `Hibira::waitingRoom('ROOM')->pause()`, `->open()`, `->admit(500)`, `->notice('...')`, `->close()`, `->get()`. Set `HIBIRA_WAITING_ROOMS=false` in local `.env` to skip the queue while developing.
