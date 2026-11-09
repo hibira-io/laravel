@@ -4,8 +4,8 @@ namespace Hibira\Laravel\WaitingRooms;
 
 use GuzzleHttp\Client as GuzzleClient;
 use Hibira\Laravel\Exceptions\MissingCredentials;
-use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
@@ -191,8 +191,10 @@ class WaitingRooms
      */
     protected function send(string $method, string $url, string $json): array
     {
-        if ($this->http === null && class_exists(HttpFactory::class) && method_exists(PendingRequest::class, 'withBody')) {
-            $request = app(HttpFactory::class)
+        if ($this->http === null && class_exists(Http::class) && method_exists(PendingRequest::class, 'withBody')) {
+            // Through the facade: on Laravel 7 and 8, Http::fake() swaps
+            // only the facade's instance, not the container binding.
+            $request = Http::getFacadeRoot()
                 ->withOptions($this->config['client_options'] ?? [])
                 ->timeout(10)
                 ->accept('application/json');
