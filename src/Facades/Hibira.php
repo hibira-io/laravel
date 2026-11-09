@@ -19,6 +19,12 @@ use Illuminate\Support\Facades\Facade;
  */
 class Hibira extends Facade
 {
+    /** A Hibira waiting room: Hibira::waitingRoom('presale')->pause(). */
+    public static function waitingRoom(string $name): \Hibira\Laravel\WaitingRooms\WaitingRoom
+    {
+        return static::$app->make('hibira.waiting-rooms')->room($name);
+    }
+
     protected static function getFacadeAccessor(): string
     {
         return 'hibira';

@@ -4,8 +4,9 @@
 
 [![ci](https://github.com/hibira-io/laravel/actions/workflows/ci.yml/badge.svg)](https://github.com/hibira-io/laravel/actions/workflows/ci.yml)
 
-Laravel broadcasting, push notifications, webhooks and Laravel AI SDK
-streaming for [Hibira](https://hibira.io), set up with one `composer require`.
+Laravel broadcasting, push notifications, webhooks, waiting rooms and
+Laravel AI SDK streaming for [Hibira](https://hibira.io), set up with one
+`composer require`.
 
 Hibira speaks the Pusher Channels protocol, so Laravel's built-in `pusher`
 broadcaster already works with it. This package saves the wiring: a
@@ -225,6 +226,73 @@ The route skips CSRF because it is outside the `web` middleware group.
 After you rotate the app secret, webhooks keep verifying with the old
 secret until you deploy the new one.
 
+## Waiting rooms
+
+Put a ticket drop or a launch page behind a Hibira waiting room: visitors
+take a queue number on a hosted waiting page, watch the line move, and come
+back with a signed pass when their number is up.
+
+Create a room (its return address defaults to `APP_URL`):
+
+```sh
+php artisan hibira:waiting-room presale create --rate=300 --title="Winter presale"
+```
+
+Protect routes with the `hibira.waiting` middleware:
+
+```php
+Route::middleware('hibira.waiting:presale')->group(function () {
+    Route::get('/drop', [DropController::class, 'show']);
+    Route::post('/drop/checkout', [DropController::class, 'checkout']);
+});
+```
+
+A visitor without a pass is redirected to the waiting page (in the app's
+locale). The pass they bring back is checked locally with the app secret,
+no API call, kept in an HTTP-only cookie until it expires, and taken off
+the address. A `POST` without a pass gets a `403` JSON answer. The pass is
+on the request:
+
+```php
+$pass = $request->attributes->get('hibira_pass'); // Hibira\Laravel\WaitingRooms\Pass
+$pass->number;   // queue number
+$pass->ticketId; // record it at checkout to allow one checkout per number
+```
+
+Run the room from code or the command line:
+
+```php
+use Hibira\Laravel\Facades\Hibira;
+
+Hibira::waitingRoom('presale')->pause();          // keep the line, admit nobody
+Hibira::waitingRoom('presale')->open();
+Hibira::waitingRoom('presale')->admit(500);       // let 500 more in now
+Hibira::waitingRoom('presale')->rate(600);        // per minute
+Hibira::waitingRoom('presale')->notice('Restock at 3pm');
+Hibira::waitingRoom('presale')->close();          // sold out
+Hibira::waitingRoom('presale')->get();            // live counters
+Hibira::waitingRoom('presale')->url(route('drop'));
+```
+
+`Hibira\Laravel\Facades\WaitingRoom` does the same (`WaitingRoom::room('presale')`,
+`WaitingRoom::all()`, `WaitingRoom::verifyPass($pass, 'presale')`). Failed
+calls throw `Hibira\Laravel\WaitingRooms\WaitingRoomException` with the
+server's message and `->status`.
+
+```sh
+php artisan hibira:waiting-room                       # list rooms
+php artisan hibira:waiting-room presale               # status
+php artisan hibira:waiting-room presale pause         # open, close too
+php artisan hibira:waiting-room presale admit --count=500
+php artisan hibira:waiting-room presale notice --message="Restock at 3pm"
+```
+
+`HIBIRA_WAITING_ROOMS=false` lets every request through, for local
+development. During a secret rotation, put the old secret in
+`HIBIRA_PREVIOUS_APP_SECRET` so passes signed with it keep working until
+they expire. For a Filament panel, `hibira-io/filament` adds a Waiting
+rooms page.
+
 ## Laravel AI SDK agents
 
 With the [Laravel AI SDK](https://github.com/laravel/ai) (`laravel/ai`, Laravel 12+ and PHP 8.3+),
@@ -341,6 +409,9 @@ php artisan vendor:publish --tag=hibira-config
 | `chunking.max_bytes` | `HIBIRA_MAX_EVENT_BYTES` | `4096`, the Free plan's per-event limit |
 | `chunking.events` | `HIBIRA_CHUNK_EVENTS` | `ai`; or `all`, `off` |
 | `ai.channels` | `HIBIRA_AI_CHANNELS` | `true`: authorize the `AgentChannel` channels |
+| `waiting_rooms.enabled` | `HIBIRA_WAITING_ROOMS` | `true`; `false` lets every request past `hibira.waiting` |
+| `waiting_rooms.previous_secret` | `HIBIRA_PREVIOUS_APP_SECRET` | none |
+| `waiting_rooms.page_host` | `HIBIRA_WAITING_ROOM_HOST` | the `host` above |
 
 The `hibira` broadcast connection needs no entry in
 `config/broadcasting.php`. To broadcast to a second Hibira app, add a

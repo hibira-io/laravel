@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+- Waiting rooms: the `hibira.waiting:ROOM` middleware sends visitors
+  without a pass to the hosted waiting page and lets them in with the pass
+  they bring back (checked locally, kept in a cookie until it expires).
+- `Hibira::waitingRoom('presale')` (and the `WaitingRoom` facade) creates,
+  pauses, opens, closes, admits, posts a notice to, lists and deletes
+  rooms, and verifies passes.
+- `php artisan hibira:waiting-room` does the same from the command line.
+- New settings: `HIBIRA_WAITING_ROOMS`, `HIBIRA_PREVIOUS_APP_SECRET`,
+  `HIBIRA_WAITING_ROOM_HOST`.
+
 ## 0.3.0
 
 - `pusher/pusher-push-notifications` is now optional (`suggest`), so
