@@ -28,7 +28,7 @@ class WaitingRoomTest extends TestCase
     protected function getEnvironmentSetUp($app)
     {
         parent::getEnvironmentSetUp($app);
-        $app['config']->set('app.url', 'https://shop.test');
+        $app['config']->set('app.url', 'http://localhost');
 
         $app['router']->middleware('hibira.waiting:presale')->group(function ($router) {
             $router->get('/drop', function () {
@@ -282,7 +282,7 @@ class WaitingRoomTest extends TestCase
         $this->assertStringContainsString('Waiting room "presale" is ready.', $output);
         $this->assertStringContainsString("Route::middleware('hibira.waiting:presale')", $output);
         $this->assertSame(
-            '{"admit_per_minute":300,"title":"Winter presale","return_urls":["https:\\/\\/shop.test\\/"]}',
+            '{"admit_per_minute":300,"title":"Winter presale","return_urls":["http:\\/\\/localhost\\/"]}',
             $this->history[0][3]
         );
 
