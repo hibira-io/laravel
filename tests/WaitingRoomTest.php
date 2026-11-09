@@ -74,7 +74,9 @@ class WaitingRoomTest extends TestCase
                 $record($request->method(), $request->url(), $request->body());
                 [$status, $body] = array_shift($this->responses);
 
-                return Http::response($body, $status);
+                // Not Http::response(): Laravel 7 builds it with
+                // promise_for(), which guzzlehttp/promises 2 dropped.
+                return new \GuzzleHttp\Promise\FulfilledPromise(new Response($status, [], $body));
             });
         } else {
             $handler = function ($request) use ($record) {
