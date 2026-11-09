@@ -198,10 +198,13 @@ class WaitingRooms
                 ->withOptions($this->config['client_options'] ?? [])
                 ->timeout(10)
                 ->accept('application/json');
+            $options = [];
             if ($json !== '') {
                 $request = $request->withBody($json, 'application/json');
+                // Laravel 7 only sends the pending body when the options name it.
+                $options['body'] = $json;
             }
-            $response = $request->send($method, $url);
+            $response = $request->send($method, $url, $options);
 
             return [$response->status(), $response->body()];
         }
