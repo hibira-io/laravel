@@ -192,8 +192,8 @@ class WaitingRooms
     protected function send(string $method, string $url, string $json): array
     {
         if ($this->http === null && class_exists(Http::class) && method_exists(PendingRequest::class, 'withBody')) {
-            // Through the facade: on Laravel 7 and 8, Http::fake() swaps
-            // only the facade's instance, not the container binding.
+            // Through the facade: before Laravel 9 the factory is not a
+            // singleton, so only the facade's instance carries Http::fake().
             $request = Http::getFacadeRoot()
                 ->withOptions($this->config['client_options'] ?? [])
                 ->timeout(10)

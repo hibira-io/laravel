@@ -85,7 +85,7 @@ class WaitingRoomTest extends TestCase
             };
             $this->app->instance(WaitingRooms::class, new WaitingRooms($this->app['config']['hibira'], new Client(['handler' => HandlerStack::create($handler)])));
         }
-        WaitingRoom::clearResolvedInstances();
+        WaitingRoom::clearResolvedInstance('hibira.waiting-rooms');
     }
 
     protected function room(array $fields = []): array
