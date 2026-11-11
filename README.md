@@ -26,8 +26,12 @@ php artisan hibira:install
 
 `hibira:install` adds the `HIBIRA_*` settings to `.env` and `.env.example`,
 sets `BROADCAST_CONNECTION=hibira` (`BROADCAST_DRIVER` before Laravel 11)
-and writes `resources/js/echo.js`, for Vite or, in older apps, Laravel Mix.
-It never overwrites a value you already have.
+and writes the Echo client: `resources/js/echo.js` for Vite or, in older
+apps, Laravel Mix, or, in the React and Vue starter kits,
+`resources/js/hibira-echo.ts` for `configureEcho()` (see
+[React and Vue starter kits](#react-and-vue-starter-kits)). It never
+overwrites a value you already have. Moving from Reverb? See
+[Coming from Reverb](#coming-from-reverb).
 
 Copy the app ID, key and secret from your app page on
 [hibira.io/portal](https://hibira.io/portal) (the free plan needs no card):
@@ -120,6 +124,51 @@ Echo.private(`orders.${orderId}`).listen('OrderShipped', (e) => console.log(e.or
 
 For presence rooms with thousands of members, use a `presence-large-*`
 channel and [`@hibira-io/large-presence`](https://github.com/hibira-io/large-presence-js).
+
+### React and Vue starter kits
+
+The Laravel 12+ React and Vue starter kits configure Echo with
+`configureEcho()` from `@laravel/echo-react` or `@laravel/echo-vue` and
+listen with `useEcho()`. In those apps `hibira:install` writes
+`resources/js/hibira-echo.ts` (`.js` in JavaScript apps) and points
+`configureEcho()` in `resources/js/app.tsx` (Vue: `app.ts`) at it:
+
+```tsx
+import { configureEcho } from '@laravel/echo-react';
+import { hibiraEcho } from './hibira-echo';
+
+configureEcho(hibiraEcho);
+```
+
+```sh
+npm install @laravel/echo-react pusher-js   # or @laravel/echo-vue
+```
+
+The hooks then work unchanged:
+
+```tsx
+useEcho(`orders.${orderId}`, 'OrderShipped', (e) => console.log(e.order));
+useEchoPresence(`rooms.${roomId}`, 'MessageSent', (e) => addMessage(e));
+```
+
+`hibiraEcho` uses a pusher-js client that joins
+[chunked events](#events-over-4-kb), so `useEcho()` also receives Laravel AI
+SDK events over your plan's size limit.
+
+### Livewire
+
+Livewire listens through `window.Echo`, so the `echo.js` above is all it
+needs (the Livewire starter kit has no React or Vue, so it gets that file):
+
+```php
+use Livewire\Attributes\On;
+
+#[On('echo-private:orders.{order.id},OrderShipped')]
+public function refreshOrder(): void
+{
+    $this->order->refresh();
+}
+```
 
 ## Push notifications
 
@@ -430,6 +479,50 @@ connection with its own credentials; any key you leave out comes from
 ],
 ```
 
+## Coming from Reverb
+
+Hibira speaks the same protocol as Reverb, so your events, channel names
+and `routes/channels.php` stay as they are. One command switches the app:
+
+```sh
+php artisan hibira:install --from-reverb
+```
+
+It sets `BROADCAST_CONNECTION=hibira`, adds the `HIBIRA_*` settings,
+comments out the `REVERB_*` and `VITE_REVERB_*` lines in `.env` and
+`.env.example` (the values stay, so you can switch back), and replaces the
+Reverb Echo client: `configureEcho({ broadcaster: 'reverb' })` in the
+starter kits, or a Reverb `resources/js/echo.js`. Then:
+
+1. Fill in the `HIBIRA_*` values from [hibira.io/portal](https://hibira.io/portal) and rebuild your assets.
+2. Stop the `php artisan reverb:start` process: the Forge daemon, Supervisor program or container that ran it.
+3. When nothing else uses it, `composer remove laravel/reverb` and delete `config/reverb.php`.
+
+`hibira:install` without the flag never touches a Reverb client; it tells
+you to rerun with `--from-reverb`, and `hibira:doctor` flags any Echo
+client still on `broadcaster: 'reverb'`.
+
+## Deploying
+
+Hibira runs the WebSocket servers, so a deploy has nothing extra to run
+except the queue worker that sends `ShouldBroadcast` events (or use
+`ShouldBroadcastNow`). Set the `HIBIRA_*` and `VITE_HIBIRA_*` variables
+before `npm run build`, because Vite bakes the `VITE_*` values into the
+bundle.
+
+- **Laravel Forge:** add the variables under Environment and keep the
+  queue worker. No WebSocket daemon, port or Nginx proxy for `/app`.
+- **Laravel Vapor:** works as is. Vapor has no long-running process for
+  `reverb:start`, and broadcasting to Hibira is a plain HTTPS call. Add the
+  variables to the environment, and the `VITE_HIBIRA_*` ones to the build
+  step too.
+- **Laravel Cloud:** add the variables to the environment; you don't need
+  a WebSocket resource.
+- **Octane, FrankenPHP and RoadRunner:** nothing changes. Each broadcast is
+  one HTTPS request from your app.
+- **Docker and Kubernetes:** no extra container or sticky sessions for
+  WebSockets.
+
 ## Coming from the pusher broadcaster
 
 Your events, channel names and `routes/channels.php` stay the same. Run
@@ -463,3 +556,18 @@ composer test
 ## License
 
 [MIT](LICENSE)
+
+## 中文摘要
+
+`hibira-io/laravel` 让 Laravel 应用一行 `composer require` 接上
+[Hibira](https://hibira.io)：broadcast 驱动、Laravel Echo 客户端、iOS / Android /
+浏览器推送、带签名验证的 webhook、等候室 middleware，以及 Laravel AI SDK
+的流式输出（自动切分超过 4 KB 的事件）。支持 Laravel 5.6 到 13。
+
+- `php artisan hibira:install` 写入 `.env` 设置和 Echo 客户端；React / Vue
+  starter kit 会改用 `configureEcho(hibiraEcho)`，`useEcho()` 不用改。
+- 从 Reverb 迁移：`php artisan hibira:install --from-reverb`，事件、频道和
+  `routes/channels.php` 都不用改，之后停掉 `reverb:start` 即可。
+- 部署到 Forge、Vapor、Laravel Cloud 或 Octane / FrankenPHP 都不需要额外跑
+  WebSocket 服务，只要保留 queue worker。
+- `php artisan hibira:doctor` 检查整套设置，并给出修正方法。
