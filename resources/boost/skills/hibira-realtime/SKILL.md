@@ -17,7 +17,8 @@ Run `php artisan hibira:doctor` (add `--offline` without network). It checks cre
 1. `BROADCAST_CONNECTION=hibira` in `.env`.
 2. An event implementing `ShouldBroadcast`, with `broadcastOn()` returning a `PrivateChannel` or `PresenceChannel` for user data.
 3. The channel authorized in `routes/channels.php`.
-4. In the browser, `Echo.private('orders.1').listen('OrderShipped', ...)` with `resources/js/echo.js` from `php artisan hibira:install`.
+4. In the browser, `Echo.private('orders.1').listen('OrderShipped', ...)` with `resources/js/echo.js` from `php artisan hibira:install`. In the React and Vue starter kits, `useEcho('orders.1', 'OrderShipped', ...)` after `configureEcho(hibiraEcho)` (`resources/js/hibira-echo.ts`, also written by `hibira:install`).
+5. Coming from Reverb: `php artisan hibira:install --from-reverb`; events, channels and `routes/channels.php` stay the same. Never add `broadcaster: 'reverb'` Echo options.
 
 ## Streaming a Laravel AI SDK agent
 

@@ -109,7 +109,13 @@ class DoctorCommand extends Command
             $this->failCheck($prefix.'HIBIRA_APP_KEY is missing from .env', 'Run php artisan hibira:install, then rebuild your assets.');
         }
 
-        $echo = $this->firstFile(['resources/js/echo.js', 'resources/js/echo.ts', 'resources/js/bootstrap.js']);
+        foreach (['resources/js/echo.js', 'resources/js/echo.ts', 'resources/js/bootstrap.js', 'resources/js/app.tsx', 'resources/js/app.jsx', 'resources/js/app.ts', 'resources/js/app.js'] as $file) {
+            if (file_exists(base_path($file)) && InstallCommand::isReverbClient((string) file_get_contents(base_path($file)))) {
+                $this->failCheck("$file still connects Echo to Reverb", 'Run php artisan hibira:install --from-reverb.');
+            }
+        }
+
+        $echo = $this->firstFile(['resources/js/hibira-echo.ts', 'resources/js/hibira-echo.js', 'resources/js/echo.js', 'resources/js/echo.ts', 'resources/js/bootstrap.js']);
         if ($echo === null) {
             $this->warnCheck('No resources/js/echo.js', 'Run php artisan hibira:install to write it.');
 

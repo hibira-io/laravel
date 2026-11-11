@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0
+
+- React and Vue starter kits (Laravel 12+): `hibira:install` writes
+  `resources/js/hibira-echo.ts` and points `configureEcho()` from
+  `@laravel/echo-react` / `@laravel/echo-vue` at it, so `useEcho()` and
+  the other hooks work unchanged, chunked events included.
+- `hibira:install --from-reverb` switches an app from Laravel Reverb: it
+  replaces the Reverb Echo client and comments out the `REVERB_*` settings.
+  Without the flag, the command says when the app still uses Reverb.
+- `hibira:doctor` fails when an Echo client still connects to Reverb.
+- README: Livewire listeners, deploying to Forge, Vapor, Laravel Cloud and
+  Octane / FrankenPHP, and a 中文摘要.
+
 ## 0.4.0
 
 - Waiting rooms: the `hibira.waiting:ROOM` middleware sends visitors

@@ -6,7 +6,7 @@ Hibira is a hosted WebSocket service that speaks the Pusher Channels protocol. T
 - Credentials live in `.env` as `HIBIRA_APP_ID`, `HIBIRA_APP_KEY`, `HIBIRA_APP_SECRET`, `HIBIRA_HOST`. Never write the app secret into code, config defaults or client-side files; only `VITE_HIBIRA_APP_KEY` and `VITE_HIBIRA_HOST` may reach the browser.
 - Run `php artisan hibira:doctor` after changing broadcasting, queues, Echo or AI streaming, and fix what it reports. `php artisan hibira:check` checks only the credentials.
 - Use private (`PrivateChannel`) or presence channels for anything user-specific, authorized in `routes/channels.php`.
-- The Free plan refuses events over 4 KB. Laravel AI SDK stream events over the limit are split into `hibira:chunk` events automatically (`HIBIRA_CHUNK_EVENTS=ai`); do not add `#[WithoutBroadcasting(ToolResult::class)]` just to stay under the limit. For other large payloads, broadcast an ID and let the client fetch the data, or set `HIBIRA_CHUNK_EVENTS=all` (then the browser needs the joiner in `resources/js/echo.js`).
+- The Free plan refuses events over 4 KB. Laravel AI SDK stream events over the limit are split into `hibira:chunk` events automatically (`HIBIRA_CHUNK_EVENTS=ai`); do not add `#[WithoutBroadcasting(ToolResult::class)]` just to stay under the limit. For other large payloads, broadcast an ID and let the client fetch the data, or set `HIBIRA_CHUNK_EVENTS=all` (then the browser needs the joiner in `resources/js/echo.js`, or `hibiraEcho` from `resources/js/hibira-echo.ts` with `configureEcho()`).
 - Broadcasting runs on the queue: keep a worker running (`php artisan queue:work`) and do not use the `sync` queue in production.
 
 ### Laravel AI SDK streaming
