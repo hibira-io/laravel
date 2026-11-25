@@ -50,6 +50,14 @@ Then check them:
 php artisan hibira:check
 ```
 
+It calls the Channels API with the ID and secret, then opens a WebSocket
+the way a browser on `APP_URL` would, so a key typo or a missing
+**Allowed origins** entry shows up before you open the page. Browsers treat
+`http://localhost:8000` and `http://127.0.0.1:8000` as different sites:
+when `APP_URL` is one of them, the check tries the other too and tells you
+to add it if you open the app that way (`php artisan serve` prints
+`http://127.0.0.1:8000`).
+
 If your project has no `routes/channels.php` yet, run
 `php artisan install:broadcasting --without-reverb --without-node` first
 (Laravel 11 and later; older apps ship the file and register it with
@@ -571,3 +579,6 @@ composer test
 - 部署到 Forge、Vapor、Laravel Cloud 或 Octane / FrankenPHP 都不需要额外跑
   WebSocket 服务，只要保留 queue worker。
 - `php artisan hibira:doctor` 检查整套设置，并给出修正方法。
+- `php artisan hibira:check` 会以 `APP_URL` 的来源实际连一次 WebSocket，检查
+  Allowed origins。`localhost` 和 `127.0.0.1` 在浏览器看来是不同网站，两个都
+  会检查。
