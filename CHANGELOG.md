@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0
+
+- `hibira:check` (and `hibira:doctor`) now connects to the WebSocket the
+  way a browser on `APP_URL` would. It fails when that origin isn't in the
+  app's Allowed origins or `HIBIRA_APP_KEY` is wrong, and names the fix.
+  For a `localhost` or `127.0.0.1` `APP_URL` it also tries the other
+  spelling, which browsers treat as a different site, and warns if it's
+  refused. If the host can't be reached the origin check is skipped with a
+  warning.
+- **Upgrading:** a script that runs `hibira:check` with an `APP_URL` that
+  isn't in Allowed origins now exits 1. Add the origin, or use
+  `hibira:doctor --offline`.
+
 ## 0.5.0
 
 - React and Vue starter kits (Laravel 12+): `hibira:install` writes
